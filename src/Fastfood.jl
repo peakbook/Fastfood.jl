@@ -2,36 +2,33 @@ module Fastfood
 
 using Hadamard
 using Distributions
+using Random
+using LinearAlgebra
 
 export FastfoodParam, FastfoodKernel
 
-type FastfoodParam
+struct FastfoodParam
     B::AbstractArray  # Binary scaling matrix
     G::AbstractArray  # Gaussian scaling matrix
     PI::AbstractArray # Permutation matrix
     S::AbstractArray  # Scaling matrix
-    function FastfoodParam()
-        new()
+    function FastfoodParam(n::Integer, d::Integer;
+                           rng::AbstractRNG=MersenneTwister())
+    
+        d = 2^ceil(Integer, log2(d))
+        k = ceil(Integer, n/d)
+        n = d*k
+    
+        B = rand(rng, [-1, 1], d, k)
+        G = randn(rng, d, k);
+        PI = zeros(Integer, d, k)
+        for i in 1:k
+            PI[:,i] = randperm(d)
+        end
+        S = rand(Chi(1), d * k)*norm(G)^(1/2)
+    
+        return new(B, G, PI, S)
     end
-end
-
-function FastfoodParam(n::Integer, d::Integer;
-                       rng::AbstractRNG=MersenneTwister())
-    param = FastfoodParam()
-
-    d = 2^ceil(Integer, log2(d))
-    k = ceil(Integer, n/d)
-    n = d*k
-
-    param.B = rand(rng, [-1, 1], d, k)
-    param.G = randn(rng, d, k);
-    param.PI = zeros(Integer, d, k)
-    for i in 1:k
-        param.PI[:,i] = randperm(d)
-    end
-    param.S = rand(Chi(1), d * k)*norm(param.G)^(1/2)
-
-    return param
 end
 
 function FastfoodKernel(X::Matrix, param::FastfoodParam;
@@ -64,7 +61,7 @@ function FastfoodKernel(X::Matrix, param::FastfoodParam;
 
     THT = broadcast(*, THT, param.S*d^(1/2))
     T = THT/sgm
-    PHI = [cos(T); sin(T)]*n^(-1/2)
+    PHI = [cos.(T); sin.(T)]*n^(-1/2)
 
     return PHI
 end

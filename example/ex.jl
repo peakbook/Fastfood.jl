@@ -1,5 +1,6 @@
 using Fastfood
 using Gadfly
+using LinearAlgebra
 
 # generate training dataset (two spirals)
 data = zeros(2, 97)
@@ -20,13 +21,13 @@ W = Y_train * pinv(Kern)  # least squares method
 
 # generate test dataset
 xrange = yrange = -6:0.1:6.0
-X = repmat(xrange', length(yrange), 1)
-Y = repmat(yrange, 1, length(xrange))
-X_test = hcat(X[:], Y[:])'
+X = repeat(xrange', length(yrange), 1)
+Y = repeat(yrange, 1, length(xrange))
+X_test = collect(hcat(X[:], Y[:])')
 
 # test
 Y_test = W * FastfoodKernel(X_test, param, sgm=sgm)
-Y_test = reshape(Y_test, length(xrange), length(yrange))'
+Y_test = collect(reshape(Y_test, length(xrange), length(yrange))')
 
 # visualize
 p = plot(
